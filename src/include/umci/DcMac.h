@@ -15,7 +15,7 @@ using namespace dccomms_packets;
 using namespace std::chrono;
 using namespace cpputils;
 
-namespace dccomms_examples {
+namespace umci {
 
 typedef uint8_t DcMacInfoField;
 typedef uint8_t DcMacPSizeField;

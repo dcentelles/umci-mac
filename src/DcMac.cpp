@@ -1,7 +1,7 @@
 #include <class_loader/multi_library_class_loader.hpp>
-#include <dccomms_examples/DcMac.h>
+#include <umci/DcMac.h>
 
-namespace dccomms_examples {
+namespace umci {
 
 DcMacPacket::DcMacPacket() {
   _prefixSize = ADD_SIZE + FLAGS_SIZE;
