@@ -102,7 +102,7 @@ public:
   dccomms::PacketPtr Create() { return dccomms::CreateObject<DcMacPacket>(); }
 };
 
-class DcMac : public StreamCommsDevice {
+class DcMac : public CommsDeviceService {
 public:
   enum Mode { master, slave };
   enum Status {
@@ -133,8 +133,8 @@ public:
   void SetMaxDistance(const double &distance);    // m
   void UpdateSlotDurFromEstimation();
   double GetPktTransmissionMillis(const uint32_t &size);
-  void SetCommsDeviceId(const string &id);
   void SetPktBuilder(const PacketBuilderPtr &pb);
+  void SetCommsDeviceId(std::string nspace);
 
   virtual void ReadPacket(const PacketPtr &pkt) override;
   virtual void WritePacket(const PacketPtr &pkt) override;
@@ -193,7 +193,6 @@ private:
   std::string _dccommsId;
   Mode _mode;
   Status _status;
-  CommsDeviceServicePtr _stream;
   Ptr<DcMacPacketBuilder> _pb;
   PacketBuilderPtr _highPb;
   PacketPtr _flushPkt;

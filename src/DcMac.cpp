@@ -252,7 +252,7 @@ CLASS_LOADER_REGISTER_CLASS(DcMacPacketBuilder, IPacketBuilder)
 /*       END PACKET        */
 /***************************/
 
-DcMac::DcMac() {
+DcMac::DcMac() : CommsDeviceService(CreateObject<DcMacPacketBuilder>()) {
   _maxQueueSize = UINT32_MAX;
   _txQueueSize = 0;
   _rxQueueSize = 0;
@@ -290,8 +290,6 @@ void DcMac::SetNumberOfNodes(const uint16_t num) {
   Log->debug("Max. nodes: {}", _maxSlaves);
 }
 
-void DcMac::SetCommsDeviceId(const string &id) { _dccommsId = id; }
-
 void DcMac::SetPktBuilder(const PacketBuilderPtr &pb) { _highPb = pb; }
 
 void DcMac::InitSlaveRtsReqs(bool reinitCtsCounter) {
@@ -318,16 +316,16 @@ void DcMac::SetDevIntrinsicDelay(const double &delay) {
   _devIntrinsicDelay = delay;
 }
 
+void DcMac::SetCommsDeviceId(std::string nspace) { _dccommsId = nspace; }
 void DcMac::Start() {
   _time = RelativeTime::GetMillis();
   if (!_highPb)
     return;
 
   InitTxDataQueues();
-  _stream = CreateObject<CommsDeviceService>(_pb);
-  _stream->SetBlockingTransmission(false);
-  _stream->SetCommsDeviceId(_dccommsId);
-  _stream->Start();
+  SetBlockingTransmission(false);
+  SetCommsDeviceId(_dccommsId);
+  Start();
   InitSlaveRtsReqs(true);
   DiscardPacketsInRxFIFO();
   if (_mode == master) {
@@ -356,8 +354,8 @@ void DcMac::WritePacket(const PacketPtr &pkt) { PushNewTxPacket(pkt); }
 void DcMac::DiscardPacketsInRxFIFO() {
   if (!_flushPkt)
     _flushPkt = _pb->Create();
-  while (_stream->GetRxFifoSize() > 0) {
-    _stream >> _flushPkt;
+  while (GetRxFifoSize() > 0) {
+     *this >> _flushPkt;
   }
 }
 
@@ -567,7 +565,7 @@ void DcMac::SlaveRunTx() {
       }
 
       if (sendRtsOrAck) {
-        _stream << pkt;
+        *this << pkt;
         if (sendRts) {
           Log->debug("Send RTS");
         }
@@ -615,7 +613,7 @@ void DcMac::SlaveRunTx() {
       }
       if (_status == ctsreceived) {
         if (_txDataPacket->PacketIsOk()) {
-          _stream << _txDataPacket;
+          *this << _txDataPacket;
           Log->debug("SEND DATA. Seq {} ; Size {}", _txDataPacket->GetSeq(),
                      _sendingDataPacketSize);
           if (_txDataPacket->GetDestAddr() != 0)
@@ -642,7 +640,7 @@ void DcMac::SlaveRunRx() {
     DiscardPacketsInRxFIFO();
     DcMacPacketPtr pkt = CreateObject<DcMacPacket>();
     while (1) {
-      _stream >> pkt;
+      *this >> pkt;
       if (pkt->PacketIsOk()) {
         npkts += 1;
         Log->debug("S: RX DCMAC PKT {} bytes; {}", pkt->GetPacketSize(),
@@ -691,7 +689,7 @@ void DcMac::PrepareDataAndSend() {
   for (int i = 0; i < _maxNodes; i++) {
     PacketQueuePtr pktQueue = _txQueues[i];
     if (!pktQueue->empty() && (pkt = &pktQueue->front())) {
-      _stream << pkt->pkt;
+      *this << pkt->pkt;
       Log->debug("SEND DATA FROM {} to {} ; Seq {} ; Size {}", _addr, pkt->dst,
                  pkt->pkt->GetSeq(), pkt->size);
       pkt->transmitting = true;
@@ -732,7 +730,7 @@ void DcMac::MasterRunTx() {
       syncPkt->SetMasterAckMask(_ackMask);
       syncPkt->UpdateFCS();
       if (syncPkt->PacketIsOk()) {
-        _stream << syncPkt;
+        *this << syncPkt;
       } else {
         Log->critical("Internal error. packet has errors");
       }
@@ -800,7 +798,7 @@ void DcMac::MasterRunTx() {
           winnerSlave->ctsBytes += winnerSlave->reqdatasize;
           if (ctsPkt->PacketIsOk()) {
             Log->debug("Send CTS to {}", slaveAddr);
-            _stream << ctsPkt;
+            *this << ctsPkt;
             auto wakeuptime =
                 std::chrono::system_clock::now() +
                 milliseconds(static_cast<int>(
@@ -845,7 +843,7 @@ void DcMac::MasterRunRx() {
     DiscardPacketsInRxFIFO();
     DcMacPacketPtr pkt = CreateObject<DcMacPacket>();
     while (1) {
-      _stream >> pkt;
+      *this >> pkt;
       if (pkt->PacketIsOk()) {
         npkts += 1;
         Log->debug("M: RX DCMAC PKT {} bytes; {}", pkt->GetPacketSize(),
@@ -1035,4 +1033,4 @@ void DcMac::FlushIO() {
   throw CommsException("void CommsDeviceService::FlushIO() Not implemented",
                        COMMS_EXCEPTION_NOTIMPLEMENTED);
 }
-} // namespace dccomms_examples
+} // namespace umci
