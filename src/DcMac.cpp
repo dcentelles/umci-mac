@@ -318,6 +318,7 @@ void DcMac::SetDevIntrinsicDelay(const double &delay) {
 
 void DcMac::SetCommsDeviceId(std::string nspace) { _dccommsId = nspace; }
 void DcMac::Start() {
+  CommsDeviceService::Start();
   _time = RelativeTime::GetMillis();
   if (!_highPb)
     return;
@@ -325,7 +326,6 @@ void DcMac::Start() {
   InitTxDataQueues();
   SetBlockingTransmission(false);
   SetCommsDeviceId(_dccommsId);
-  Start();
   InitSlaveRtsReqs(true);
   DiscardPacketsInRxFIFO();
   if (_mode == master) {
@@ -355,7 +355,7 @@ void DcMac::DiscardPacketsInRxFIFO() {
   if (!_flushPkt)
     _flushPkt = _pb->Create();
   while (GetRxFifoSize() > 0) {
-     *this >> _flushPkt;
+    CommsDeviceService::ReadPacket(_flushPkt);
   }
 }
 
@@ -565,7 +565,7 @@ void DcMac::SlaveRunTx() {
       }
 
       if (sendRtsOrAck) {
-        *this << pkt;
+        CommsDeviceService::WritePacket(pkt);
         if (sendRts) {
           Log->debug("Send RTS");
         }
@@ -613,7 +613,7 @@ void DcMac::SlaveRunTx() {
       }
       if (_status == ctsreceived) {
         if (_txDataPacket->PacketIsOk()) {
-          *this << _txDataPacket;
+          CommsDeviceService::WritePacket(_txDataPacket);
           Log->debug("SEND DATA. Seq {} ; Size {}", _txDataPacket->GetSeq(),
                      _sendingDataPacketSize);
           if (_txDataPacket->GetDestAddr() != 0)
@@ -640,7 +640,7 @@ void DcMac::SlaveRunRx() {
     DiscardPacketsInRxFIFO();
     DcMacPacketPtr pkt = CreateObject<DcMacPacket>();
     while (1) {
-      *this >> pkt;
+      CommsDeviceService::ReadPacket(pkt);
       if (pkt->PacketIsOk()) {
         npkts += 1;
         Log->debug("S: RX DCMAC PKT {} bytes; {}", pkt->GetPacketSize(),
@@ -689,7 +689,7 @@ void DcMac::PrepareDataAndSend() {
   for (int i = 0; i < _maxNodes; i++) {
     PacketQueuePtr pktQueue = _txQueues[i];
     if (!pktQueue->empty() && (pkt = &pktQueue->front())) {
-      *this << pkt->pkt;
+      CommsDeviceService::WritePacket(pkt->pkt);
       Log->debug("SEND DATA FROM {} to {} ; Seq {} ; Size {}", _addr, pkt->dst,
                  pkt->pkt->GetSeq(), pkt->size);
       pkt->transmitting = true;
@@ -730,7 +730,7 @@ void DcMac::MasterRunTx() {
       syncPkt->SetMasterAckMask(_ackMask);
       syncPkt->UpdateFCS();
       if (syncPkt->PacketIsOk()) {
-        *this << syncPkt;
+        CommsDeviceService::WritePacket(syncPkt);
       } else {
         Log->critical("Internal error. packet has errors");
       }
@@ -798,7 +798,7 @@ void DcMac::MasterRunTx() {
           winnerSlave->ctsBytes += winnerSlave->reqdatasize;
           if (ctsPkt->PacketIsOk()) {
             Log->debug("Send CTS to {}", slaveAddr);
-            *this << ctsPkt;
+            CommsDeviceService::WritePacket(ctsPkt);
             auto wakeuptime =
                 std::chrono::system_clock::now() +
                 milliseconds(static_cast<int>(
@@ -843,7 +843,7 @@ void DcMac::MasterRunRx() {
     DiscardPacketsInRxFIFO();
     DcMacPacketPtr pkt = CreateObject<DcMacPacket>();
     while (1) {
-      *this >> pkt;
+      CommsDeviceService::ReadPacket(pkt);
       if (pkt->PacketIsOk()) {
         npkts += 1;
         Log->debug("M: RX DCMAC PKT {} bytes; {}", pkt->GetPacketSize(),
