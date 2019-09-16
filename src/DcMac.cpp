@@ -318,14 +318,14 @@ void DcMac::SetDevIntrinsicDelay(const double &delay) {
 
 void DcMac::SetCommsDeviceId(std::string nspace) { _dccommsId = nspace; }
 void DcMac::Start() {
+  SetBlockingTransmission(false);
+  CommsDeviceService::SetCommsDeviceId(_dccommsId);
   CommsDeviceService::Start();
   _time = RelativeTime::GetMillis();
   if (!_highPb)
     return;
 
   InitTxDataQueues();
-  SetBlockingTransmission(false);
-  SetCommsDeviceId(_dccommsId);
   InitSlaveRtsReqs(true);
   DiscardPacketsInRxFIFO();
   if (_mode == master) {
