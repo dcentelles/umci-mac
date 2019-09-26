@@ -134,7 +134,7 @@ public:
   void UpdateSlotDurFromEstimation();
   double GetPktTransmissionMillis(const uint32_t &size);
   void SetPktBuilder(const PacketBuilderPtr &pb);
-  void SetCommsDeviceId(std::string nspace);
+  virtual void SetCommsDeviceId(std::string nspace) override;
 
   virtual void ReadPacket(const PacketPtr &pkt) override;
   virtual void WritePacket(const PacketPtr &pkt) override;
