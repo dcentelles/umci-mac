@@ -26,8 +26,8 @@ class DcMacPacket : public Packet {
 public:
   enum Type { sync = 0, rts, cts, data, unknown };
   DcMacPacket();
-  void SetDst(uint8_t add);
-  void SetSrc(uint8_t add);
+  void SetDcMacDst(uint8_t add);
+  void SetDcMacSrc(uint8_t add);
   void SetType(Type type);
   Type GetType();
   void SetRtsDataSize(const DcMacRtsDataSizeField &tt);
@@ -35,8 +35,8 @@ public:
   bool GetSlaveAck(uint8_t node);
   DcMacAckField GetSlaveAckMask();
 
-  uint8_t GetDst();
-  uint8_t GetSrc();
+  uint8_t GetDcMacDst();
+  uint8_t GetDcMacSrc();
   void SetMasterAckMask(const DcMacAckField &mask);
   void SetSlaveAck(uint8_t node);
   void SetSlaveAckMask(const DcMacAckField &mask);
@@ -45,10 +45,11 @@ public:
 
   static int GetPayloadSizeFromPacketSize(int size);
 
-  void SetDestAddr(uint32_t addr) { SetDst(addr); }
-  void SetSrcAddr(uint32_t addr) { SetSrc(addr); }
-  uint32_t GetDestAddr() { return GetDst(); }
-  uint32_t GetSrcAddr() { return GetSrc(); }
+  void SetDst(const uint32_t & addr) { SetDcMacDst(addr); }
+  void SetSrc(const uint32_t & addr) { SetDcMacSrc(addr); }
+
+  uint32_t GetDst() { return GetDcMacDst(); }
+  uint32_t GetSrc() { return GetDcMacSrc(); }
 
   void DoCopyFromRawBuffer(void *buffer);
   uint8_t *GetPayloadBuffer();
@@ -58,7 +59,7 @@ public:
   void PayloadUpdated(uint32_t payloadSize);
   uint32_t SetPayload(uint8_t *data, uint32_t size);
 
-  bool PacketIsOk();
+  bool IsOk();
   PacketPtr Create();
 
   void UpdateFCS();
